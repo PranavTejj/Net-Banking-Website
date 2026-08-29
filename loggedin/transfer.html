@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>333Bank - Transfer</title>
+    <script src="angular.min.js"></script>
+    <script>
+        let app = angular.module("transferApp", []);
+        app.controller("transferCtrl", function($scope, $http) {
+            $scope.banks = ["333Bank", "SBI", "HDFC"];
+            let email = localStorage.getItem("userEmail");
+            if (!email) {
+                window.location.href = "/login.html";
+            }
+            function loadBalance() {
+                $http.post("http://localhost:3000/getUser", { email: email })
+                .then(function(res) {
+                    $scope.balance = res.data.balance;
+                });
+            }
+            loadBalance();
+            $scope.transferFunds = function() {
+                if ($scope.transferForm.$valid) {
+                    if ($scope.amount > $scope.balance) {
+                        alert("Insufficient balance!");
+                        return;
+                    }
+                    let data = {
+                        email: email,
+                        accno: $scope.accno,
+                        amount: $scope.amount,
+                        remark: $scope.remark || "Fund Transfer"
+                    };
+                    $http.post("http://localhost:3000/transfer", data)
+                    .then(function(res) {
+                        alert(res.data);
+                        $scope.transferForm.$setPristine();
+                        $scope.transferForm.$setUntouched();
+                        $scope.beneficiary = "";
+                        $scope.accno = "";
+                        $scope.ifsc = "";
+                        $scope.amount = "";
+                        $scope.bank = "";
+                        $scope.remark = "";
+                        loadBalance();
+                    })
+                    .catch(function(err) {
+                        alert(err.data || "Transfer failed");
+                    });
+                }
+            };
+            $scope.notifications = [
+                "Your EMI of ₹5,000 is due on 25th March.",
+                "₹8,200 salary credited to your account.",
+                "Transfer of ₹2,300 was successful."
+            ];
+        });
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .page-content { padding: 36px 40px; display: flex; gap: 24px; }
+        .transfer-form { flex: 1; max-width: 480px; }
+        .transfer-info { flex: 0 0 260px; }
+        .info-box { margin-bottom: 16px; }
+        .info-box .label { font-size: 12px; color: #aab4c0; margin-bottom: 4px; }
+        .info-box .val { font-size: 22px; font-weight: bold; color: #4a90d9; }
+        .tip { font-size: 12px; color: #aab4c0; line-height: 1.7; margin-top: 12px; }
+    </style>
+</head>
+<body ng-app="transferApp" ng-controller="transferCtrl">
+<nav>
+    <div class="logo">333<span>Bank</span></div>
+    <div class="nav-links">
+        <a href="img.html">Founders</a>
+    </div>
+    <div class="nav-btns">
+        <button class="btn-outline" onclick="location.href='/index.html'">Log out</button>
+    </div>
+</nav>
+<div class="page-layout">
+    <div class="sidebar">
+        <a href="dashboard.html">📊 Dashboard</a>
+        <a href="account.html">🏦 Account</a>
+        <a href="transfer.html" class="active">💸 Transfer</a>
+        <a href="loans.html">📋 Loans</a>
+        <a href="help.html">❓ Help</a>
+        <div class="notif-box">
+            <h4>🔔 Notifications</h4>
+            <div class="notif-item" ng-repeat="n in notifications">{{ n }}</div>
+        </div>
+    </div>
+    <div class="page-content">
+        <div class="card transfer-form">
+            <div class="section-title" style="margin-bottom:22px;">Fund Transfer</div>
+            <form name="transferForm">
+                <div class="form-group">
+                    <label>Beneficiary Name</label>
+                    <input type="text" name="beneficiary" ng-model="beneficiary" required ng-pattern="/^[A-Z][a-zA-Z ]*$/">
+                    <span class="error" ng-show="transferForm.beneficiary.$touched && transferForm.beneficiary.$error.required">
+                        Beneficiary name is required!
+                    </span>
+                    <span class="error" ng-show="transferForm.beneficiary.$touched && transferForm.beneficiary.$error.pattern">
+                        Name must start with a capital letter!
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" name="accno" ng-model="accno" required ng-pattern="/^[0-9a-zA-Z]{7,18}$/">
+                    <span class="error" ng-show="transferForm.accno.$touched && transferForm.accno.$error.required">
+                        Account number is required!
+                    </span>
+                    <span class="error" ng-show="transferForm.accno.$touched && transferForm.accno.$error.pattern">
+                        Enter a valid account number (9-18 digits)!
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label>IFSC Code</label>
+                    <input type="text" name="ifsc" ng-model="ifsc" required ng-pattern="/^[A-Z]{4}[0-9]{7}$/">
+                    <span class="error" ng-show="transferForm.ifsc.$touched && transferForm.ifsc.$error.required">
+                        IFSC code is required!
+                    </span>
+                    <span class="error" ng-show="transferForm.ifsc.$touched && transferForm.ifsc.$error.pattern">
+                        Enter a valid IFSC code (e.g. HDFC0001234)!
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label>Select Bank</label>
+                    <select name="bank" ng-model="bank" ng-options="b for b in banks" required>
+                        <option value="">-- Select Bank --</option>
+                    </select>
+                    <span class="error" ng-show="transferForm.bank.$touched && transferForm.bank.$error.required">
+                        Please select a bank!
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₹)</label>
+                    <input type="number" name="amount" ng-model="amount" required min="1">
+                    <span class="error" ng-show="transferForm.amount.$touched && transferForm.amount.$error.required">
+                        Amount is required!
+                    </span>
+                    <span class="error" ng-show="transferForm.amount.$touched && transferForm.amount.$error.min">
+                        Amount must be at least ₹1!
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label>Remark (optional)</label>
+                    <input type="text" name="remark" ng-model="remark">
+                </div>
+                <button type="button" class="btn-fill" ng-click="transferFunds()" style="width:100%; padding:11px; font-size:15px;">
+                    Transfer Now
+                </button>
+            </form>
+        </div>
+        <div>
+            <div class="card transfer-info">
+                <div class="info-box">
+                    <div class="label">Available Balance</div>
+                    <div class="val">₹{{ balance | number }}</div>
+                </div>
+                <hr style="border-color:#1e2d42; margin:16px 0;">
+                <div class="tip">
+                    🔒 All transfers are encrypted and secure.<br><br>
+                    ⏱ Transfers within 333Bank are instant. Other banks may take up to 2 hours.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

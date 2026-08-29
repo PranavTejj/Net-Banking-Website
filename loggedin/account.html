@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>333Bank - Account</title>
+    <script src="angular.min.js"></script>
+    <script>
+    let app = angular.module("accountApp", []);
+    app.controller("accountCtrl", function($scope, $http) {
+        let email = localStorage.getItem("userEmail");
+        if (!email) {
+            window.location.href = "/login.html";
+        }
+        $http.post("http://localhost:3000/getUser", { email: email })
+        .then(function(res) {
+            let user = res.data;
+            $scope.account = {
+                name: user.name,
+                accNo: "XXXX XXXX " + user.account_number.slice(-4),
+                type: user.account_type,
+                branch: "Nashik Main Branch",
+                ifsc: "3330001234",
+                balance: user.balance
+            };
+        })
+        .catch(function(err) {
+            console.log(err);
+            alert("Error loading account data");
+        });
+        $http.get("http://localhost:3000/transactions?email=" + email)
+        .then(function(res) {
+            $scope.transactions = res.data.map(function(t) {
+                let isSender = (t.sender_email === email);
+                return {
+                    date: new Date(t.date).toLocaleString(),
+                    desc: (t.remark || "Transfer") + " → " + t.receiver_acc,
+                    amount: (isSender ? "- ₹" : "+ ₹") + t.amount,
+                    type: isSender ? "debit" : "credit"
+                };
+            });
+        })
+        .catch(function(err) {
+            console.log(err);
+            alert("Error loading transactions");
+        });
+        $scope.notifications = [
+            "Your EMI of ₹5,000 is due on 25th March.",
+            "₹8,200 salary credited to your account.",
+            "Transfer of ₹2,300 was successful."
+        ];
+    });
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .account-grid { display: flex; gap: 20px; margin-bottom: 28px; }
+        .info-card { flex: 1; }
+        .balance-card { flex: 0 0 260px; text-align: center; }
+        .balance-card .bal-label { font-size: 13px; color: #aab4c0; margin-bottom: 8px; }
+        .balance-card .bal-amount { font-size: 34px; font-weight: bold; color: #4a90d9; margin-bottom: 4px; }
+        .info-row { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #1e2d42; font-size: 14px; }
+        .info-row:last-child { border-bottom: none; }
+        .info-row .key { color: #aab4c0; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { text-align: left; padding: 10px 12px; font-size: 12px; color: #aab4c0; border-bottom: 1px solid #1e2d42; }
+        td { padding: 12px; border-bottom: 1px solid #1e2d42; }
+        .credit { color: #4caf7d; }
+        .debit  { color: #e05a5a; }
+    </style>
+</head>
+<body ng-app="accountApp" ng-controller="accountCtrl">
+<nav>
+    <div class="logo">333<span>Bank</span></div>
+    <div class="nav-links">
+        <a href="img.html">Founders</a>
+    </div>
+    <div class="nav-btns">
+        <button class="btn-outline" onclick="location.href='/index.html'">Log out</button>
+    </div>
+</nav>
+<div class="page-layout">
+    <div class="sidebar">
+        <a href="dashboard.html">📊 Dashboard</a>
+        <a href="account.html" class="active">🏦 Account</a>
+        <a href="transfer.html">💸 Transfer</a>
+        <a href="loans.html">📋 Loans</a>
+        <a href="help.html">❓ Help</a>
+        <div class="notif-box">
+            <h4>🔔 Notifications</h4>
+            <div class="notif-item" ng-repeat="n in notifications">{{ n }}</div>
+        </div>
+    </div>
+    <div class="page-content">
+        <div class="section-title">My Account</div>
+        <div class="account-grid">
+            <div class="card info-card">
+                <div class="info-row"><span class="key">Account Holder</span><span>{{ account.name }}</span></div>
+                <div class="info-row"><span class="key">Account Number</span><span>{{ account.accNo }}</span></div>
+                <div class="info-row"><span class="key">Account Type</span><span>{{ account.type }}</span></div>
+                <div class="info-row"><span class="key">Branch</span><span>{{ account.branch }}</span></div>
+                <div class="info-row"><span class="key">IFSC Code</span><span>{{ account.ifsc }}</span></div>
+            </div>
+            <div class="card balance-card">
+                <div class="bal-label">Available Balance</div>
+                <div class="bal-amount">₹{{ account.balance | number }}</div>
+                <br>
+                <button class="btn-fill" onclick="location.href='transfer.html'" style="width:100%;">
+                    Transfer Funds
+                </button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="section-title" style="margin-bottom:16px;">Transaction History</div>
+            <table>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                </tr>
+                <tr ng-repeat="t in transactions">
+                    <td class="muted">{{ t.date }}</td>
+                    <td>{{ t.desc }}</td>
+                    <td ng-class="t.type">{{ t.amount }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

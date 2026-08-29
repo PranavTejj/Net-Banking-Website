@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>333Bank - Loans</title>
+    <script src="angular.min.js"></script>
+    <script>
+        let app = angular.module("loansApp", []);
+        app.service("interestService", function() {
+            this.calcSimple = function(p, r, t) {
+                return (p * r * t) / 100;
+            };
+            this.calcEMI = function(p, r, t) {
+                let monthlyRate = r / (12 * 100);
+                let n = t * 12;
+                if (monthlyRate === 0) return p / n;
+                return (p * monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
+            };
+        });
+        app.controller("loansCtrl", function($scope, interestService) {
+            $scope.loans = [
+                { type: "Home Loan",     principal: 500000, rate: 8.5, years: 10, paid: 200000 },
+                { type: "Personal Loan", principal: 100000, rate: 12,  years: 3,  paid: 60000  }
+            ];
+            $scope.calcInterest = function() {
+                if ($scope.calcForm.$valid) {
+                    $scope.simpleInterest = interestService.calcSimple($scope.cp, $scope.cr, $scope.ct);
+                    $scope.emi = interestService.calcEMI($scope.cp, $scope.cr, $scope.ct).toFixed(2);
+                    $scope.totalPayable = (+$scope.cp + +$scope.simpleInterest).toFixed(2);
+                }
+            };
+            $scope.getProgress = function(l) {
+                return (l.paid / l.principal) * 100;
+            };
+            $scope.notifications = [
+                "Your EMI of ₹5,000 is due on 25th March.",
+                "₹8,200 salary credited to your account.",
+                "Transfer of ₹2,300 was successful."
+            ];
+        });
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .loan-grid { display: flex; gap: 20px; margin-bottom: 28px; }
+        .loan-card { flex: 1; }
+        .loan-card h3 { font-size: 15px; margin-bottom: 14px; color: #4a90d9; }
+        .loan-row { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0; border-bottom: 1px solid #1e2d42; }
+        .loan-row:last-child { border-bottom: none; }
+        .loan-row .key { color: #aab4c0; }
+        .progress-bar-bg { background: #1e2d42; border-radius: 6px; height: 8px; margin: 10px 0 4px; }
+        .progress-bar { background: #4a90d9; height: 8px; border-radius: 6px; }
+        .calc-section { display: flex; gap: 24px; }
+        .calc-form { flex: 1; max-width: 400px; }
+        .result-box { flex: 1; }
+        .result-item { margin-bottom: 16px; }
+        .result-item .rlabel { font-size: 12px; color: #aab4c0; margin-bottom: 4px; }
+        .result-item .rval { font-size: 22px; font-weight: bold; color: #4a90d9; }
+    </style>
+</head>
+<body ng-app="loansApp" ng-controller="loansCtrl">
+<nav>
+    <div class="logo">333<span>Bank</span></div>
+    <div class="nav-links">
+        <a href="img.html">Founders</a>
+    </div>
+    <div class="nav-btns">
+        <button class="btn-outline" onclick="location.href='/index.html'">Log out</button>
+    </div>
+</nav>
+<div class="page-layout">
+    <div class="sidebar">
+        <a href="dashboard.html">📊 Dashboard</a>
+        <a href="account.html">🏦 Account</a>
+        <a href="transfer.html">💸 Transfer</a>
+        <a href="loans.html" class="active">📋 Loans</a>
+        <a href="help.html">❓ Help</a>
+        <div class="notif-box">
+            <h4>🔔 Notifications</h4>
+            <div class="notif-item" ng-repeat="n in notifications">{{ n }}</div>
+        </div>
+    </div>
+    <div class="page-content">
+        <div class="section-title">My Loans</div>
+        <div class="loan-grid">
+            <div class="card loan-card" ng-repeat="l in loans">
+                <h3>{{ l.type }}</h3>
+                <div class="loan-row"><span class="key">Principal</span><span>₹{{ l.principal | number:3 }}</span></div>
+                <div class="loan-row"><span class="key">Interest Rate</span><span>{{ l.rate }}% p.a.</span></div>
+                <div class="loan-row"><span class="key">Tenure</span><span>{{ l.years }} years</span></div>
+                <div class="loan-row"><span class="key">Amount Paid</span><span style="color:#4caf7d;">₹{{ l.paid | number:3 }}</span></div>
+                <div class="loan-row"><span class="key">Remaining</span><span style="color:#e05a5a;">₹{{ (l.principal - l.paid) | number:3 }}</span></div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar" ng-style="{'width': getProgress(l) + '%'}"></div>
+                </div>
+                <div style="font-size:11px; color:#aab4c0; text-align:right;">{{ ((l.paid / l.principal) * 100) | number:0 }}% paid</div>
+            </div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+            <div class="section-title" style="margin-bottom:20px;">Interest Calculator</div>
+            <div class="calc-section">
+
+                <div class="calc-form">
+                    <form name="calcForm">
+
+                        <div class="form-group">
+                            <label>Principal Amount (₹)</label>
+                            <input type="number" name="cp" ng-model="cp" required min="1">
+                            <span class="error" ng-show="calcForm.cp.$touched && calcForm.cp.$error.required">
+                                Principal is required!
+                            </span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Annual Interest Rate (%)</label>
+                            <input type="number" name="cr" ng-model="cr" required min="0.1">
+                            <span class="error" ng-show="calcForm.cr.$touched && calcForm.cr.$error.required">
+                                Interest rate is required!
+                            </span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tenure (Years)</label>
+                            <input type="number" name="ct" ng-model="ct" required min="1">
+                            <span class="error" ng-show="calcForm.ct.$touched && calcForm.ct.$error.required">
+                                Tenure is required!
+                            </span>
+                        </div>
+
+                        <button type="button" class="btn-fill" ng-click="calcInterest()" style="width:100%; padding:10px;">
+                            Calculate
+                        </button>
+
+                    </form>
+                </div>
+
+                <div class="result-box" ng-show="simpleInterest">
+                    <div class="result-item">
+                        <div class="rlabel">Simple Interest</div>
+                        <div class="rval">₹{{ simpleInterest | number:2 }}</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="rlabel">Monthly EMI (approx.)</div>
+                        <div class="rval">₹{{ emi | number:2 }}</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="rlabel">Total Payable</div>
+                        <div class="rval">₹{{ totalPayable | number:2 }}</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

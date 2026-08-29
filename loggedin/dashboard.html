@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>333Bank - Dashboard</title>
+    <script src="angular.min.js"></script>
+    <script>
+        let app = angular.module("dashApp", []);
+    app.controller("dashCtrl", function($scope, $http) {
+    let email = localStorage.getItem("userEmail");
+    if (!email) {
+        window.location.href = "/login.html";
+    }
+    $http.post("http://localhost:3000/getUser", { email: email })
+    .then(function(res) {
+
+        let user = res.data;
+        $scope.user = user.name;
+        $scope.balance = user.balance;
+        $scope.monthlyNet = 8200;
+        $scope.loanDue = 5000;
+
+    })
+    .catch(function(err) {
+        console.log(err);
+        alert("Error loading user data");
+    });
+    $scope.notifications = [
+        "Your EMI of ₹5,000 is due on 25th March.",
+        "₹8,200 salary credited to your account.",
+        "Transfer of ₹2,300 was successful."
+    ];
+    $http.get("http://localhost:3000/transactions?email=" + email)
+    .then(function(res) {
+            $scope.transactions = res.data.map(function(t) {
+                let isSender = (t.sender_email === email);
+                return {
+                    date: new Date(t.date).toLocaleString(),
+                    desc: (t.remark || "Transfer") + " → " + t.receiver_acc,
+                    amount: (isSender ? "- ₹" : "+ ₹") + t.amount,
+                    type: isSender ? "debit" : "credit"
+                };
+            });
+        })
+});
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .main-content { flex: 1; padding: 32px; }
+        .welcome { font-size: 18px; margin-bottom: 24px; }
+        .welcome span { color: #4a90d9; }
+        .stats-row { display: flex; gap: 16px; margin-bottom: 28px; }
+        .stat-card { flex: 1; }
+        .stat-card .label { font-size: 12px; color: #aab4c0; margin-bottom: 6px; }
+        .stat-card .value { font-size: 26px; font-weight: bold; }
+        .value.green { color: #4caf7d; }
+        .value.red   { color: #e05a5a; }
+        .value.blue  { color: #4a90d9; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { text-align: left; padding: 10px 12px; font-size: 12px; color: #aab4c0; border-bottom: 1px solid #1e2d42; }
+        td { padding: 12px 12px; border-bottom: 1px solid #1e2d42; }
+        .credit { color: #4caf7d; }
+        .debit  { color: #e05a5a; }
+        .quick-actions { display: flex; gap: 12px; margin-bottom: 28px; }
+        .quick-actions button { flex: 1; padding: 12px; font-size: 13px; }
+    </style>
+</head>
+<body ng-app="dashApp" ng-controller="dashCtrl">
+<nav>
+    <div class="logo">333<span>Bank</span></div>
+    <div class="nav-links">
+        <a href="img.html">Founders</a>
+    </div>
+    <div class="nav-btns">
+        <button class="btn-outline" onclick="location.href='/index.html'">Log out</button>
+    </div>
+</nav>
+<div class="page-layout">
+    <div class="sidebar">
+        <a href="dashboard.html" class="active">📊 Dashboard</a>
+        <a href="account.html">🏦 Account</a>
+        <a href="transfer.html">💸 Transfer</a>
+        <a href="loans.html">📋 Loans</a>
+        <a href="help.html">❓ Help</a>
+        <div class="notif-box">
+            <h4>🔔 Notifications</h4>
+            <div class="notif-item" ng-repeat="n in notifications">{{ n }}</div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="welcome">Welcome back, <span>{{ user }}</span></div>
+
+        <div class="stats-row">
+            <div class="card stat-card">
+                <div class="label">Total Balance</div>
+                <div class="value blue">₹{{ balance | number:3 }}</div>
+            </div>
+            <div class="card stat-card">
+                <div class="label">Monthly Net</div>
+                <div class="value green">+₹{{ monthlyNet | number:3 }}</div>
+            </div>
+            <div class="card stat-card">
+                <div class="label">Loan Due</div>
+                <div class="value red">₹{{ loanDue | number:3 }}</div>
+            </div>
+        </div>
+        <div class="quick-actions">
+            <button class="btn-fill" onclick="location.href='transfer.html'">💸 New Transfer</button>
+            <button class="btn-outline" onclick="location.href='loans.html'">📋 View Loans</button>
+            <button class="btn-outline" onclick="location.href='account.html'">🏦 Account Details</button>
+        </div>
+        <div class="card">
+            <div class="section-title" style="margin-bottom:16px;">Last Transactions</div>
+            <table>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                </tr>
+                <tr ng-repeat="t in transactions">
+                    <td class="muted">{{ t.date }}</td>
+                    <td>{{ t.desc }}</td>
+                    <td ng-class="t.type">{{ t.amount }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
